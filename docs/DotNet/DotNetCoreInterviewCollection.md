@@ -343,3 +343,513 @@ public class UserController : ControllerBase
 }
 ```
 ```
+
+---
+
+## Web API开发 🟠
+
+### 15. RESTful API设计原则
+**面试频率：⭐⭐⭐⭐⭐**
+
+**问题：** RESTful API的设计原则和最佳实践？
+
+**答案：**
+
+**REST设计原则：**
+1. **无状态性**：每个请求必须包含处理该请求所需的所有信息
+2. **统一接口**：使用标准HTTP方法（GET、POST、PUT、DELETE等）
+3. **资源标识**：使用URI唯一标识资源
+4. **资源表示**：支持多种数据格式（JSON、XML等）
+5. **分层系统**：客户端无需知道中间层的存在
+
+```csharp
+// 标准的RESTful API设计示例
+[ApiController]
+[Route("api/[controller]")]
+public class UsersController : ControllerBase
+{
+    private readonly IUserService _userService;
+    private readonly ILogger<UsersController> _logger;
+    
+    public UsersController(IUserService userService, ILogger<UsersController> logger)
+    {
+        _userService = userService;
+        _logger = logger;
+    }
+    
+    // GET: api/users - 获取所有用户
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string search = "")
+    {
+        var users = await _userService.GetUsersAsync(page, pageSize, search);
+        
+        return Ok(new
+        {
+            Data = users.Items,
+            TotalCount = users.TotalCount,
+            Page = page,
+            PageSize = pageSize
+        });
+    }
+    
+    // GET: api/users/{id} - 获取特定用户
+    [HttpGet("{id}")]
+    public async Task<ActionResult<UserDto>> GetUser(int id)
+    {
+        var user = await _userService.GetUserByIdAsync(id);
+        
+        if (user == null)
+        {
+            return NotFound(new { Message = $"User with ID {id} not found" });
+        }
+        
+        return Ok(user);
+    }
+    
+    // POST: api/users - 创建新用户
+    [HttpPost]
+    public async Task<ActionResult<UserDto>> CreateUser([FromBody] CreateUserRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+        
+        try
+        {
+            var user = await _userService.CreateUserAsync(request);
+            return CreatedAtAction(nameof(GetUser), new { id = user.Id }, user);
+        }
+        catch (ValidationException ex)
+        {
+            return BadRequest(new { Message = ex.Message });
+        }
+    }
+    
+    // PUT: api/users/{id} - 更新用户
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+        
+        try
+        {
+            await _userService.UpdateUserAsync(id, request);
+            return NoContent();
+        }
+        catch (NotFoundException)
+        {
+            return NotFound(new { Message = $"User with ID {id} not found" });
+        }
+    }
+    
+    // DELETE: api/users/{id} - 删除用户
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteUser(int id)
+    {
+        try
+        {
+            await _userService.DeleteUserAsync(id);
+            return NoContent();
+        }
+        catch (NotFoundException)
+        {
+            return NotFound(new { Message = $"User with ID {id} not found" });
+        }
+    }
+}
+
+// 数据传输对象（DTO）
+public class UserDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public string Email { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
+
+public class CreateUserRequest
+{
+    [Required]
+    [StringLength(100)]
+    public string Name { get; set; }
+    
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; }
+    
+    [Required]
+    [MinLength(6)]
+    public string Password { get; set; }
+}
+```
+
+### 16. API版本控制
+**面试频率：⭐⭐⭐⭐**
+
+**问题：** ASP.NET Core中如何实现API版本控制？
+
+**答案：**
+
+```csharp
+// 1. 通过URL路径进行版本控制
+[ApiController]
+[ApiVersion("1.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
+public class UsersV1Controller : ControllerBase
+{
+    [HttpGet]
+    public IActionResult GetUsers()
+    {
+        return Ok(new { Version = "1.0", Message = "Users from V1" });
+    }
+}
+
+[ApiController]
+[ApiVersion("2.0")]
+[Route("api/v{version:apiVersion}/[controller]")]
+public class UsersV2Controller : ControllerBase
+{
+    [HttpGet]
+    public IActionResult GetUsers()
+    {
+        return Ok(new { Version = "2.0", Message = "Users from V2", NewField = "Added in V2" });
+    }
+}
+
+// 2. 通过查询参数进行版本控制
+[ApiController]
+[ApiVersion("1.0")]
+[ApiVersion("2.0")]
+[Route("api/[controller]")]
+public class ProductsController : ControllerBase
+{
+    [HttpGet]
+    [MapToApiVersion("1.0")]
+    public IActionResult GetProductsV1()
+    {
+        return Ok(new { Version = "1.0", Products = "V1 format" });
+    }
+    
+    [HttpGet]
+    [MapToApiVersion("2.0")]
+    public IActionResult GetProductsV2()
+    {
+        return Ok(new { Version = "2.0", Products = "V2 format with more details" });
+    }
+}
+
+// 3. 通过HTTP头进行版本控制
+[ApiController]
+[ApiVersion("1.0")]
+[ApiVersion("2.0")]
+[Route("api/[controller]")]
+public class OrdersController : ControllerBase
+{
+    [HttpGet]
+    [MapToApiVersion("1.0")]
+    public IActionResult GetOrdersV1()
+    {
+        return Ok(new { Version = "1.0" });
+    }
+    
+    [HttpGet]
+    [MapToApiVersion("2.0")]
+    public IActionResult GetOrdersV2()
+    {
+        return Ok(new { Version = "2.0" });
+    }
+}
+
+// Startup.cs配置
+public void ConfigureServices(IServiceCollection services)
+{
+    services.AddApiVersioning(options =>
+    {
+        options.DefaultApiVersion = ApiVersion.Default; // 默认版本1.0
+        options.AssumeDefaultVersionWhenUnspecified = true;
+        
+        // 版本识别方式
+        options.ApiVersionReader = ApiVersionReader.Combine(
+            new UrlSegmentApiVersionReader(),           // 通过URL段
+            new QueryStringApiVersionReader("version"), // 通过查询参数
+            new HeaderApiVersionReader("X-Version"),    // 通过HTTP头
+            new MediaTypeApiVersionReader("ver")        // 通过Media Type
+        );
+    });
+    
+    services.AddVersionedApiExplorer(setup =>
+    {
+        setup.GroupNameFormat = "'v'VVV";
+        setup.SubstituteApiVersionInUrl = true;
+    });
+}
+```
+
+---
+
+## 性能优化 🔴
+
+### 17. 缓存策略
+**面试频率：⭐⭐⭐⭐⭐**
+
+**问题：** .NET Core中有哪些缓存策略？如何选择合适的缓存方案？
+
+**答案：**
+
+```csharp
+// 1. 内存缓存 (IMemoryCache)
+public class MemoryCacheService
+{
+    private readonly IMemoryCache _memoryCache;
+    private readonly IUserRepository _userRepository;
+    
+    public MemoryCacheService(IMemoryCache memoryCache, IUserRepository userRepository)
+    {
+        _memoryCache = memoryCache;
+        _userRepository = userRepository;
+    }
+    
+    public async Task<User> GetUserAsync(int userId)
+    {
+        string cacheKey = $"user_{userId}";
+        
+        if (_memoryCache.TryGetValue(cacheKey, out User cachedUser))
+        {
+            return cachedUser;
+        }
+        
+        var user = await _userRepository.GetByIdAsync(userId);
+        
+        if (user != null)
+        {
+            var cacheEntryOptions = new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30),
+                SlidingExpiration = TimeSpan.FromMinutes(5),
+                Priority = CacheItemPriority.High
+            };
+            
+            _memoryCache.Set(cacheKey, user, cacheEntryOptions);
+        }
+        
+        return user;
+    }
+}
+
+// 2. 分布式缓存 (IDistributedCache)
+public class DistributedCacheService
+{
+    private readonly IDistributedCache _distributedCache;
+    private readonly IProductRepository _productRepository;
+    
+    public DistributedCacheService(IDistributedCache distributedCache, IProductRepository productRepository)
+    {
+        _distributedCache = distributedCache;
+        _productRepository = productRepository;
+    }
+    
+    public async Task<Product> GetProductAsync(int productId)
+    {
+        string cacheKey = $"product_{productId}";
+        
+        var cachedProduct = await _distributedCache.GetStringAsync(cacheKey);
+        if (!string.IsNullOrEmpty(cachedProduct))
+        {
+            return JsonSerializer.Deserialize<Product>(cachedProduct);
+        }
+        
+        var product = await _productRepository.GetByIdAsync(productId);
+        
+        if (product != null)
+        {
+            var cacheEntryOptions = new DistributedCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1),
+                SlidingExpiration = TimeSpan.FromMinutes(10)
+            };
+            
+            var serializedProduct = JsonSerializer.Serialize(product);
+            await _distributedCache.SetStringAsync(cacheKey, serializedProduct, cacheEntryOptions);
+        }
+        
+        return product;
+    }
+}
+
+// 3. 响应缓存
+[ApiController]
+[Route("api/[controller]")]
+public class CachedDataController : ControllerBase
+{
+    // HTTP缓存 - 客户端缓存
+    [HttpGet("public-data")]
+    [ResponseCache(Duration = 3600, Location = ResponseCacheLocation.Any)]
+    public IActionResult GetPublicData()
+    {
+        return Ok(new { Data = "This can be cached by browsers and proxies", Timestamp = DateTime.Now });
+    }
+    
+    // 服务器端缓存
+    [HttpGet("server-data")]
+    [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Server)]
+    public IActionResult GetServerData()
+    {
+        return Ok(new { Data = "This is cached on server only", Timestamp = DateTime.Now });
+    }
+    
+    // 禁用缓存
+    [HttpGet("no-cache-data")]
+    [ResponseCache(NoStore = true)]
+    public IActionResult GetNoCacheData()
+    {
+        return Ok(new { Data = "This should not be cached", Timestamp = DateTime.Now });
+    }
+}
+
+// 4. 自定义缓存装饰器模式
+public interface ICacheableRepository<T>
+{
+    Task<T> GetByIdAsync(int id);
+    Task<IEnumerable<T>> GetAllAsync();
+}
+
+public class CachedRepository<T> : ICacheableRepository<T> where T : class
+{
+    private readonly ICacheableRepository<T> _repository;
+    private readonly IMemoryCache _cache;
+    private readonly string _cacheKeyPrefix;
+    
+    public CachedRepository(ICacheableRepository<T> repository, IMemoryCache cache)
+    {
+        _repository = repository;
+        _cache = cache;
+        _cacheKeyPrefix = typeof(T).Name.ToLower();
+    }
+    
+    public async Task<T> GetByIdAsync(int id)
+    {
+        string cacheKey = $"{_cacheKeyPrefix}_{id}";
+        
+        if (_cache.TryGetValue(cacheKey, out T cachedEntity))
+        {
+            return cachedEntity;
+        }
+        
+        var entity = await _repository.GetByIdAsync(id);
+        
+        if (entity != null)
+        {
+            _cache.Set(cacheKey, entity, TimeSpan.FromMinutes(15));
+        }
+        
+        return entity;
+    }
+    
+    public async Task<IEnumerable<T>> GetAllAsync()
+    {
+        string cacheKey = $"{_cacheKeyPrefix}_all";
+        
+        if (_cache.TryGetValue(cacheKey, out IEnumerable<T> cachedEntities))
+        {
+            return cachedEntities;
+        }
+        
+        var entities = await _repository.GetAllAsync();
+        _cache.Set(cacheKey, entities, TimeSpan.FromMinutes(5));
+        
+        return entities;
+    }
+}
+
+// 缓存配置
+public void ConfigureServices(IServiceCollection services)
+{
+    // 内存缓存
+    services.AddMemoryCache();
+    
+    // 分布式缓存 - Redis
+    services.AddStackExchangeRedisCache(options =>
+    {
+        options.Configuration = "localhost:6379";
+        options.InstanceName = "MyApp";
+    });
+    
+    // 响应缓存
+    services.AddResponseCaching();
+    
+    // 自定义缓存服务
+    services.AddScoped<IUserRepository, UserRepository>();
+    services.Decorate<IUserRepository, CachedUserRepository>();
+}
+
+public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+{
+    app.UseResponseCaching();
+    // 其他中间件...
+}
+```
+
+**缓存选择指南：**
+| 场景 | 推荐方案 | 说明 |
+|------|----------|------|
+| 单服务器 | MemoryCache | 高性能，适合小量数据 |
+| 多服务器 | Redis/SQL Server缓存 | 共享缓存，支持分布式 |
+| 静态内容 | ResponseCache + CDN | 减少服务器负载 |
+| 频繁读取 | 多层缓存 | L1: Memory, L2: Redis |
+
+---
+
+## 总结和学习建议 ��
+
+### 面试准备策略
+
+1. **基础知识牢固**：
+   - 掌握C#语法特性和面向对象概念
+   - 理解.NET Core架构和生命周期
+   - 熟悉常用设计模式
+
+2. **实际项目经验**：
+   - 能够描述参与过的项目架构
+   - 解释遇到的技术难题和解决方案
+   - 展示对性能优化的理解
+
+3. **编码能力**：
+   - 手写常见算法和数据结构
+   - 能够现场实现设计模式
+   - 理解LINQ操作和性能影响
+
+4. **技术深度**：
+   - 了解CLR和垃圾回收机制
+   - 掌握异步编程最佳实践
+   - 理解微服务和分布式系统概念
+
+### 持续学习资源
+
+- **官方文档**：[Microsoft .NET Documentation](https://docs.microsoft.com/dotnet/)
+- **开源项目**：参与或阅读优秀的.NET开源项目
+- **技术博客**：关注.NET技术专家的博客
+- **在线课程**：Pluralsight、Udemy等平台的.NET课程
+- **技术会议**：参加.NET相关的技术会议和meetup
+
+### 面试技巧
+
+1. **STAR方法**：Situation, Task, Action, Result
+2. **代码质量**：注重代码的可读性和最佳实践
+3. **问题解决**：展示分析问题和解决问题的思路
+4. **技术沟通**：用简洁清晰的语言解释复杂概念
+
+---
+
+> 💡 **提示**：本面试题集合会持续更新，建议收藏并定期查看最新内容。
+> 
+> 如有疑问或建议，欢迎在[DotNetGuide项目](https://github.com/YSGStudyHards/DotNetGuide)中提出Issue。
+
+**祝愿所有.NET开发者面试顺利，技术精进！** 🚀
+

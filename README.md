@@ -242,7 +242,20 @@
 
 **🐱‍🚀C#/.NET/.NET Core相关技术常见面试题汇总，不仅仅为了面试而学习，更多的是查漏补缺、扩充知识面和大家共同学习进步。**
 
+### 📖 面试题资源
+
+* **完整面试题集合（推荐⭐⭐⭐⭐⭐）：** [.NET Core完整面试题合集 - 从初级到高级](docs/DotNet/DotNetCoreInterviewCollection.md)
+  - 🟢 **初级**：C#基础语法、.NET Core基础概念、面向对象编程
+  - 🟡 **中级**：多线程与异步编程、内存管理、LINQ、设计模式
+  - 🔴 **高级**：微服务架构、性能优化、安全性、分布式系统
+  - 🟣 **深入**：CLR运行时、JIT编译、反射与元数据
+  - 🟠 **实战**：Web API开发、数据库操作、部署运维、算法数据结构
+
 * **面试宝典地址（点赞收藏不迷路）：** [https://www.yuque.com/ysgstudyhard/da6e0c👉](https://www.yuque.com/ysgstudyhard/da6e0c)
+
+* **算法面试题集合：** [C#经典算法面试题](docs/算法/C#经典算法面试题.md)
+  - 递归算法、排序算法、数据结构实现
+  - 字符串处理、数学计算、逻辑思维题
 
 ![C#.NET.NET Core面试宝典（基础版）](https://images.cnblogs.com/cnblogs_com/Can-daydayup/2145479/o_240328134732_%E9%9D%A2%E8%AF%95%E5%AE%9D%E5%85%B8.png)
 
