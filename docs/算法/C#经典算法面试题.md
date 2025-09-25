@@ -521,4 +521,12 @@ static void CountChar(string str)
 * [C#常见算法面试](https://blog.csdn.net/taoerchun/article/details/51693960)
 * [C#经典算法面试题](https://blog.csdn.net/qq_43562262/article/details/110634559)
 
+# 相关面试资源
+> 💡 **推荐**：查看完整的[.NET Core面试题合集](../DotNet/DotNetCoreInterviewCollection.md)，包含更多算法、数据结构和.NET技术面试题！
+
+## 更多学习资源
+* [.NET Core完整面试题合集 - 从初级到高级](../DotNet/DotNetCoreInterviewCollection.md)
+* [C#/.NET/.NET Core拾遗补漏](../DotNet/DotNetStudy.md)
+* [数据结构与算法专题](#算法与数据结构-🟠)（详见完整面试合集）
+
 
